@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -6,10 +7,13 @@ from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 from sklearn.model_selection import train_test_split
 import os
 from PIL import Image
+from tqdm import tqdm
 
+# 优化transform以减少PIL Image转换
 def get_transforms(is_train=True):
     if is_train:
         return transforms.Compose([
+            transforms.Lambda(lambda x: x if isinstance(x, Image.Image) else Image.fromarray(x)),
             transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(10),
@@ -20,6 +24,7 @@ def get_transforms(is_train=True):
         ])
     else:
         return transforms.Compose([
+            transforms.Lambda(lambda x: x if isinstance(x, Image.Image) else Image.fromarray(x)),
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
@@ -94,27 +99,47 @@ class EmojiDataset(Dataset):
             self.classes = sorted(os.listdir(os.path.join(root_dir, 'train')))
             self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
             
-            # 收集所有训练图像路径和标签
+            # 收集所有训练图像路径
+            image_paths = []
+            labels = []
             for class_name in self.classes:
                 class_dir = os.path.join(root_dir, 'train', class_name)
                 for img_name in os.listdir(class_dir):
                     if img_name.endswith('.png'):
-                        self.images.append(os.path.join(class_dir, img_name))
-                        self.labels.append(self.class_to_idx[class_name])
+                        image_paths.append(os.path.join(class_dir, img_name))
+                        labels.append(self.class_to_idx[class_name])
+            
+            # 预加载所有图像到内存
+            print(f"Loading {len(image_paths)} training images into memory...")
+            for img_path in tqdm(image_paths):
+                # 读取图像并转换为RGB
+                img = Image.open(img_path).convert('RGB')
+                # 转换为numpy数组存储，节省内存
+                img_array = np.array(img)
+                self.images.append(img_array)
+            self.labels = labels
+            
         else:
             # 测试集直接读取所有png文件
             test_dir = os.path.join(root_dir, 'test')
-            self.images = [os.path.join(test_dir, f) for f in os.listdir(test_dir) 
+            image_paths = [os.path.join(test_dir, f) for f in os.listdir(test_dir) 
                          if f.endswith('.png')]
-            self.images.sort()  # 确保文件顺序一致
-            self.labels = None  # 测试集没有标签
+            image_paths.sort()  # 确保文件顺序一致
+            
+            # 预加载测试集图像
+            print(f"Loading {len(image_paths)} test images into memory...")
+            self.image_names = [os.path.basename(p) for p in image_paths]
+            for img_path in tqdm(image_paths):
+                img = Image.open(img_path).convert('RGB')
+                img_array = np.array(img)
+                self.images.append(img_array)
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        img_path = self.images[idx]
-        image = Image.open(img_path).convert('RGB')
+        # 从numpy数组转换回PIL Image
+        image = Image.fromarray(self.images[idx])
 
         if self.transform:
             image = self.transform(image)
@@ -122,7 +147,7 @@ class EmojiDataset(Dataset):
         if self.mode == 'train':
             return image, self.labels[idx]
         else:
-            return image, os.path.basename(img_path)  # 测试集返回图片名称
+            return image, self.image_names[idx]
     
     def get_classes(self):
         return self.classes

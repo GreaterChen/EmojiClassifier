@@ -4,6 +4,7 @@ import torch
 def get_config():
     config = {
         'data_dir': '/home/chenlb/machineLearning/data',  # 数据根目录
+        'result_dir': '/home/chenlb/machineLearning/results/backbone',
         'batch_size': 32,
         'num_workers': 4,
         'num_classes': 50,

@@ -1,8 +1,10 @@
 import torch
 from torchvision import transforms
+from collections import defaultdict
 from dataset import *
 from config import *
 from network import *
+from utils import *
 # 训练函数
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
@@ -74,6 +76,7 @@ def predict_test(model, test_loader, device, classes):
 # 使用示例
 def main():
     config = get_config()
+    os.makedirs(config['result_dir'], exist_ok=True)
     
     # 获取数据加载器和类别信息
     train_loader, val_loader, test_loader, classes = get_dataloaders(
@@ -105,6 +108,7 @@ def main():
     print(f"Test batches: {len(test_loader)}")
     
     # 开始训练...
+    history = defaultdict(list)
     best_acc = 0
     for epoch in range(config['num_epochs']):
         train_loss, train_acc = train_one_epoch(
@@ -125,11 +129,14 @@ def main():
                 'optimizer_state_dict': optimizer.state_dict(),
                 'best_acc': best_acc,
                 'classes': classes
-            }, f'/home/chenlb/machineLearning/results/backbone/best_model_{best_acc}_{epoch}.pth')
+            }, os.path.join(config['result_dir'], f'best_model.pth'))
             
         print(f'Epoch [{epoch+1}/{config["num_epochs"]}]')
         print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%')
         print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
+
+        # 绘制并保存训练进度图
+        plot_training_progress(history, save_path=os.path.join(config['result_dir'], 'training_progress.png'))
 
         # 训练完成后进行测试集预测
     print("Predicting test set...")
