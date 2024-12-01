@@ -67,10 +67,26 @@ def predict_test(model, test_loader, device, classes):
         filenames.extend(image_names)
     
     # 创建提交文件
-    with open('submission.csv', 'w') as f:
-        f.write('file_name,predicted_class\n')
-        for fname, pred in zip(filenames, predictions):
-            f.write(f'{fname},{pred}\n')
+    import pandas as pd
+    
+    # 创建DataFrame
+    df = pd.DataFrame({
+        'filename': filenames,
+        'category': predictions
+    })
+    
+    # 确保文件名按数字顺序排序
+    df['sort_key'] = df['filename'].str.extract('(\d+)').astype(int)
+    df = df.sort_values('sort_key')
+    df = df.drop('sort_key', axis=1)
+    
+    # 保存为csv文件，制表符分隔
+    df.to_csv('submission.csv', sep='\t', index=False)
+    print("Predictions saved to submission.csv")
+    
+    # 打印前几行检查格式
+    print("\nFirst few lines of predictions:")
+    print(df.head().to_string())
 
 
 # 使用示例
@@ -144,7 +160,12 @@ def main():
         # 绘制并保存训练进度图
         plot_training_progress(history, save_path=os.path.join(config['result_dir'], 'training_progress.png'))
 
-        # 训练完成后进行测试集预测
+    # 训练完成后进行测试集预测
+    print("Loading best model for prediction...")
+    checkpoint = torch.load(os.path.join(config['result_dir'], 'best_model.pth'))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print(f"Loaded model from epoch {checkpoint['epoch']} with best accuracy {checkpoint['best_acc']:.2f}%")
+    
     print("Predicting test set...")
     predict_test(model, test_loader, config['device'], classes)
     print("Predictions saved to submission.csv")
