@@ -3,8 +3,10 @@ import torch
 # 训练配置
 def get_config():
     config = {
+        'model_name': 'resnet50',
         'data_dir': '/home/chenlb/EmojiClassifier/data',  # 数据根目录
         'result_dir': '/home/chenlb/EmojiClassifier/results/backbone',
+        'pretrained': True,
         'batch_size': 32,
         'num_workers': 4,
         'num_classes': 50,

@@ -102,8 +102,12 @@ def main():
     )
     
     # 创建模型
-    # model = EmojiClassifier(num_classes=len(classes)).to(config['device'])
-    model = EmojiClassifier(model_name='resnet50', num_classes=50).to(config['device'])
+    model = EmojiClassifier(
+        model_name=config['model_name'],
+        num_classes=config['num_classes'],
+        pretrained=config['pretrained']
+    )
+    
     
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(
