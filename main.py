@@ -120,6 +120,12 @@ def main():
         )
         
         scheduler.step()
+
+        # 记录训练历史
+        history['train_loss'].append(train_loss)
+        history['train_acc'].append(train_acc)
+        history['val_loss'].append(val_loss)
+        history['val_acc'].append(val_acc)
         
         if val_acc > best_acc:
             best_acc = val_acc
