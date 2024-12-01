@@ -1,0 +1,128 @@
+import torch
+import torch.nn as nn
+from torchvision import transforms
+from timm import create_model
+from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
+from sklearn.model_selection import train_test_split
+import os
+from PIL import Image
+
+def get_transforms(is_train=True):
+    if is_train:
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(10),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                              std=[0.229, 0.224, 0.225])
+        ])
+    else:
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                              std=[0.229, 0.224, 0.225])
+        ])
+
+def get_dataloaders(data_dir, batch_size=32, num_workers=4):
+    # 创建训练集数据集实例
+    train_dataset = EmojiDataset(
+        root_dir=data_dir,
+        transform=get_transforms(is_train=True),
+        mode='train'
+    )
+    
+    # 从训练集中分割出验证集
+    train_indices, val_indices = train_test_split(
+        range(len(train_dataset)),
+        test_size=0.1,
+        random_state=42,
+        stratify=train_dataset.labels
+    )
+    
+    # 创建训练集和验证集的采样器
+    train_sampler = torch.utils.data.SubsetRandomSampler(train_indices)
+    val_sampler = torch.utils.data.SubsetRandomSampler(val_indices)
+    
+    # 创建训练和验证数据加载器
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    val_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        sampler=val_sampler,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    # 创建测试集的数据集和数据加载器
+    test_dataset = EmojiDataset(
+        root_dir=data_dir,
+        transform=get_transforms(is_train=False),
+        mode='test'
+    )
+    
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    return train_loader, val_loader, test_loader, train_dataset.get_classes()
+
+# 创建数据集类
+class EmojiDataset(Dataset):
+    def __init__(self, root_dir, transform=None, mode='train'):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.mode = mode
+        self.images = []
+        self.labels = []
+        
+        if mode == 'train':
+            # 获取所有类别
+            self.classes = sorted(os.listdir(os.path.join(root_dir, 'train')))
+            self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
+            
+            # 收集所有训练图像路径和标签
+            for class_name in self.classes:
+                class_dir = os.path.join(root_dir, 'train', class_name)
+                for img_name in os.listdir(class_dir):
+                    if img_name.endswith('.png'):
+                        self.images.append(os.path.join(class_dir, img_name))
+                        self.labels.append(self.class_to_idx[class_name])
+        else:
+            # 测试集直接读取所有png文件
+            test_dir = os.path.join(root_dir, 'test')
+            self.images = [os.path.join(test_dir, f) for f in os.listdir(test_dir) 
+                         if f.endswith('.png')]
+            self.images.sort()  # 确保文件顺序一致
+            self.labels = None  # 测试集没有标签
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img_path = self.images[idx]
+        image = Image.open(img_path).convert('RGB')
+
+        if self.transform:
+            image = self.transform(image)
+            
+        if self.mode == 'train':
+            return image, self.labels[idx]
+        else:
+            return image, os.path.basename(img_path)  # 测试集返回图片名称
+    
+    def get_classes(self):
+        return self.classes
