@@ -52,7 +52,7 @@ def validate(model, dataloader, criterion, device):
 
 # 添加测试集预测函数
 @torch.no_grad()
-def predict_test(model, test_loader, device, classes):
+def predict_test(model, test_loader, device, classes, file_path):
     model.eval()
     predictions = []
     filenames = []
@@ -82,7 +82,7 @@ def predict_test(model, test_loader, device, classes):
     df = df.drop('sort_key', axis=1)
     
     # 保存为csv文件，制表符分隔
-    df.to_csv('submission.csv', sep=',', index=False)
+    df.to_csv(file_path, sep=',', index=False)
     print("Predictions saved to submission.csv")
     
     # 打印前几行检查格式
@@ -176,7 +176,7 @@ def main():
     print(f"Loaded model from epoch {checkpoint['epoch']} with best accuracy {checkpoint['best_acc']:.2f}%")
     
     print("Predicting test set...")
-    predict_test(model, test_loader, config['device'], classes)
+    predict_test(model, test_loader, config['device'], classes, os.path.join(config['result_dir'], "submission.csv"))
     print("Predictions saved to submission.csv")
 
 if __name__ == '__main__':

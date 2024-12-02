@@ -146,7 +146,7 @@ class StyleBranch(nn.Module):
         self.stat_extractor = AdaptiveStatExtractor(32)  # 输出维度: 32*4 = 128
         
         # 2. 纹理编码器
-        self.texture_encoder = MultiScaleTextureEncoder(32)  # 输出维度: 32*32*3 = 3072
+        # self.texture_encoder = MultiScaleTextureEncoder(32)  # 输出维度: 32*32*3 = 3072
         
         # 特征融合网络
         self.fusion = nn.Sequential(
@@ -155,7 +155,7 @@ class StyleBranch(nn.Module):
             FusionBlock(3072, 512),   # 纹理特征处理 3072->512
             
             # 最终融合得到1024维特征
-            nn.Linear(1024, 1024),    # 连接后的维度(512+512=1024)
+            nn.Linear(512, 1024),    # 连接后的维度(512+512=1024)
             nn.LayerNorm(1024),
         )
         
@@ -165,15 +165,15 @@ class StyleBranch(nn.Module):
         
         # 1. 提取统计特征和纹理特征
         stat_features = self.stat_extractor(x)      # (batch_size, 128)
-        texture_features = self.texture_encoder(x)   # (batch_size, 3072)
+        # texture_features = self.texture_encoder(x)   # (batch_size, 3072)
         
         # 2. 分别处理每种特征
         stat_processed = self.fusion[0](stat_features)    # (batch_size, 512)
-        texture_processed = self.fusion[1](texture_features)  # (batch_size, 512)
+        # texture_processed = self.fusion[1](texture_features)  # (batch_size, 512)
         
         # 3. 组合并最终融合
-        combined = torch.cat([stat_processed, texture_processed], dim=1)  # (batch_size, 1024)
-        return self.fusion[2:](combined)  # (batch_size, 1024)
+        # combined = torch.cat([stat_processed, texture_processed], dim=1)  # (batch_size, 1024)
+        return self.fusion[2:](stat_processed)  # (batch_size, 1024)
     
 class FusionBlock(nn.Module):
     def __init__(self, in_dim, out_dim):
