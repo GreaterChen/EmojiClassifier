@@ -86,8 +86,8 @@ def predict_test(model, test_loader, device, classes, file_path):
     print("Predictions saved to submission.csv")
     
     # 打印前几行检查格式
-    print("\nFirst few lines of predictions:")
-    print(df.head().to_string())
+    # print("\nFirst few lines of predictions:")
+    # print(df.head().to_string())
 
 
 # 使用示例
@@ -161,6 +161,9 @@ def main():
                 'best_acc': best_acc,
                 'classes': classes
             }, os.path.join(config['result_dir'], f'best_model.pth'))
+
+            print("Predicting test set...")
+            predict_test(model, test_loader, config['device'], classes, os.path.join(config['result_dir'], "submission.csv"))
             
         print(f'Epoch [{epoch+1}/{config["num_epochs"]}]')
         print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%')
@@ -177,7 +180,6 @@ def main():
     
     print("Predicting test set...")
     predict_test(model, test_loader, config['device'], classes, os.path.join(config['result_dir'], "submission.csv"))
-    print("Predictions saved to submission.csv")
 
 if __name__ == '__main__':
     main()

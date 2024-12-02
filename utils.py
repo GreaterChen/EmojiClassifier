@@ -64,6 +64,6 @@ def get_model_names():
     base_models = [
         'resnet50', 'resnet101', 'resnet152',
         'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
-        'swin_base_patch4_window7_224', 'swin_small_patch4_window7_224'
+        'swin_base_patch4_window7_224', 'swin_small_patch4_window7_224', 'swin_base_patch4_window7_224.ms_in22k_ft_in1k'
     ]
     return base_models

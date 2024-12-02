@@ -13,7 +13,7 @@ class EmojiClassifier(nn.Module):
         
         # 1. 构建主干网络和基础分类器
         n_features = self.build_encoder(model_name, pretrained)
-        self.build_classifier(n_features, num_classes)
+        self.build_classifier(1280, num_classes)
         
         # 2. 构建风格感知分支
         self.style_branch = StyleBranch(3)
@@ -114,7 +114,7 @@ class EmojiClassifier(nn.Module):
         self.classifier = nn.Sequential(
             nn.LayerNorm(n_features),
             nn.Linear(n_features, 512),
-            nn.GELU(),
+            nn.ReLU(),
             nn.Dropout(0.1),
             nn.Linear(512, num_classes)
         )
@@ -151,12 +151,12 @@ class StyleBranch(nn.Module):
         # 特征融合网络
         self.fusion = nn.Sequential(
             # 分别处理两种特征
-            FusionBlock(128, 512),    # 统计特征处理 128->512
+            FusionBlock(128, 256),    # 统计特征处理 128->512
             FusionBlock(3072, 512),   # 纹理特征处理 3072->512
             
             # 最终融合得到1024维特征
-            nn.Linear(512, 1024),    # 连接后的维度(512+512=1024)
-            nn.LayerNorm(1024),
+            # nn.Linear(256, 256),    # 连接后的维度(512+512=1024)
+            nn.LayerNorm(256),
         )
         
     def forward(self, x):
@@ -173,7 +173,7 @@ class StyleBranch(nn.Module):
         
         # 3. 组合并最终融合
         # combined = torch.cat([stat_processed, texture_processed], dim=1)  # (batch_size, 1024)
-        return self.fusion[2:](stat_processed)  # (batch_size, 1024)
+        return self.fusion[-1](stat_processed)  # (batch_size, 1024)
     
 class FusionBlock(nn.Module):
     def __init__(self, in_dim, out_dim):
@@ -277,15 +277,16 @@ class FeatureFusion(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.attention = nn.Sequential(
-            nn.Linear(channels * 2, channels),
+            nn.Linear(1024+256, 512),
             nn.ReLU(),
-            nn.Linear(channels, channels),
+            nn.Linear(512, 512),
             nn.Sigmoid()
         )
         
     def forward(self, content_features, style_features):
         combined = torch.cat([content_features, style_features], dim=1)
-        attention_weights = self.attention(combined)
-        return content_features * attention_weights + style_features * (1 - attention_weights)
+        # attention_weights = self.attention(combined)
+        # return content_features * attention_weights + style_features * (1 - attention_weights)
+        return combined
 
 
