@@ -7,7 +7,7 @@ def get_config():
         'data_dir': '/home/chenlb/EmojiClassifier/data',  # 数据根目录
         'result_dir': '/home/chenlb/EmojiClassifier/results/all',
         'pretrained': True,
-        'batch_size': 2,
+        'batch_size': 32,
         'num_workers': 4,
         'num_classes': 50,
         'learning_rate': 1e-4,

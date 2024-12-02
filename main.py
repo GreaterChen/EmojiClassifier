@@ -110,8 +110,10 @@ def main():
         num_classes=config['num_classes'],
         pretrained=config['pretrained']
     ).to(config['device'])
-    
-    criterion = CombinedLoss().to(config['device'])
+
+    criterion_ce = nn.CrossEntropyLoss().to(config['device'])
+    criterion_combine = CombinedLoss().to(config['device'])
+
     optimizer = torch.optim.SGD(
         model.parameters(),
         lr=config['learning_rate'],
@@ -135,11 +137,11 @@ def main():
     best_acc = 0
     for epoch in range(config['num_epochs']):
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, config['device']
+            model, train_loader, criterion_combine, optimizer, config['device']
         )
         
         val_loss, val_acc = validate(
-            model, val_loader, criterion, config['device']
+            model, val_loader, criterion_ce, config['device']
         )
         
         scheduler.step()

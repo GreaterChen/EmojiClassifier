@@ -25,17 +25,38 @@ class StyleContrastLoss(nn.Module):
         self.temperature = temperature
         
     def forward(self, features, labels):
+        # L2归一化
         features = F.normalize(features, dim=1)
-        similarity = torch.mm(features, features.t()) / self.temperature
-        masks = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
         
-        # 去除对角线
-        masks = masks - torch.eye(masks.shape[0], device=masks.device)
+        # 计算相似度矩阵
+        similarity = torch.mm(features, features.t()) / self.temperature  # (batch_size, batch_size)
         
-        # 计算正样本对的损失
-        pos_loss = -torch.log(
-            (similarity * masks).sum(1) / 
-            (torch.exp(similarity) * (1 - torch.eye(similarity.shape[0], device=similarity.device))).sum(1)
-        )
+        # 创建标签掩码
+        masks = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()  # (batch_size, batch_size)
         
-        return pos_loss.mean()
+        # 去除自身对比
+        eye = torch.eye(features.size(0), device=features.device)
+        masks = masks - eye
+        
+        # 为了数值稳定性，使用logsumexp
+        exp_sim = torch.exp(similarity - torch.max(similarity, dim=1, keepdim=True)[0])
+        
+        # 计算分母 (所有负样本的exp sum)
+        neg_mask = 1 - eye
+        denominator = torch.sum(exp_sim * neg_mask, dim=1)
+        
+        # 计算分子 (正样本的exp sum)
+        numerator = torch.sum(exp_sim * masks, dim=1)
+        
+        # 避免除零
+        eps = 1e-8
+        loss = -torch.log(numerator / (denominator + eps) + eps)
+        
+        # 确保有正样本的样本才计算损失
+        valid_mask = (masks.sum(1) > 0)
+        if valid_mask.sum() > 0:
+            loss = loss[valid_mask].mean()
+        else:
+            loss = torch.tensor(0.0, device=features.device)
+            
+        return loss
