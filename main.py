@@ -5,6 +5,7 @@ from dataset import *
 from config import *
 from network import *
 from utils import *
+from loss import *
 # 训练函数
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
@@ -16,8 +17,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         images, labels = images.to(device), labels.to(device)
         
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+        outputs, style_features = model(images)
+        loss = criterion(outputs, style_features, labels)
         
         loss.backward()
         optimizer.step()
@@ -108,10 +109,9 @@ def main():
         model_name=config['model_name'],
         num_classes=config['num_classes'],
         pretrained=config['pretrained']
-    )
+    ).to(config['device'])
     
-    
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = CombinedLoss().to(config['device'])
     optimizer = torch.optim.SGD(
         model.parameters(),
         lr=config['learning_rate'],

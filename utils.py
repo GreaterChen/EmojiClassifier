@@ -56,3 +56,14 @@ def set_seed(seed=42):
     
     # 设置Python哈希种子
     os.environ['PYTHONHASHSEED'] = str(seed)
+
+
+# 使用示例
+def get_model_names():
+    """获取所有支持的模型名称"""
+    base_models = [
+        'resnet50', 'resnet101', 'resnet152',
+        'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2',
+        'swin_base_patch4_window7_224', 'swin_small_patch4_window7_224'
+    ]
+    return base_models
