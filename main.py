@@ -82,7 +82,7 @@ def predict_test(model, test_loader, device, classes):
     df = df.drop('sort_key', axis=1)
     
     # 保存为csv文件，制表符分隔
-    df.to_csv('submission.csv', sep='\t', index=False)
+    df.to_csv('submission.csv', sep=',', index=False)
     print("Predictions saved to submission.csv")
     
     # 打印前几行检查格式

@@ -97,6 +97,8 @@ class EmojiDataset(Dataset):
         if mode == 'train':
             # 获取所有类别
             self.classes = sorted(os.listdir(os.path.join(root_dir, 'train')))
+            self.classes = [item.replace(" ", ",") for item in self.classes]
+                
             self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
             
             # 收集所有训练图像路径
