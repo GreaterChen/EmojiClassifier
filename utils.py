@@ -1,4 +1,8 @@
 import matplotlib.pyplot as plt
+import random
+import numpy as np
+import torch
+import os
 
 def plot_training_progress(history, save_path='training_progress.png'):
     """
@@ -27,3 +31,28 @@ def plot_training_progress(history, save_path='training_progress.png'):
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+
+def set_seed(seed=42):
+    """
+    固定所有可能的随机数种子，确保结果可复现
+    
+    Args:
+        seed (int): 随机数种子，默认为42
+    """
+    # Python随机数生成器
+    random.seed(seed)
+    
+    # Numpy随机数生成器
+    np.random.seed(seed)
+    
+    # PyTorch随机数生成器
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # 多GPU的情况
+    
+    # PyTorch后端
+    torch.backends.cudnn.deterministic = True  # 确保每次返回的卷积算法是确定的
+    torch.backends.cudnn.benchmark = False     # 禁用cudnn的自动调优功能
+    
+    # 设置Python哈希种子
+    os.environ['PYTHONHASHSEED'] = str(seed)

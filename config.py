@@ -3,7 +3,7 @@ import torch
 # 训练配置
 def get_config():
     config = {
-        'model_name': 'resnet50',
+        'model_name': 'swin_base_patch4_window7_224',
         'data_dir': '/home/chenlb/EmojiClassifier/data',  # 数据根目录
         'result_dir': '/home/chenlb/EmojiClassifier/results/backbone',
         'pretrained': True,

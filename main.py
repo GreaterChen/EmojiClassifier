@@ -91,6 +91,8 @@ def predict_test(model, test_loader, device, classes):
 
 # 使用示例
 def main():
+    set_seed(42)
+
     config = get_config()
     os.makedirs(config['result_dir'], exist_ok=True)
     
