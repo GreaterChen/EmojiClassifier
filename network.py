@@ -35,7 +35,7 @@ class EmojiClassifier(nn.Module):
         output = self.classifier(fused_features)
         
         if self.training:
-            return output, style_features
+            return output, fused_features
         return output
     
     def load_pretrained(self, path):
