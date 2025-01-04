@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 import os
 from PIL import Image
 from tqdm import tqdm
+from utils import count_class_samples
 
 # 优化transform以减少PIL Image转换
 def get_transforms(is_train=True):
@@ -38,6 +39,8 @@ def get_dataloaders(data_dir, batch_size=32, num_workers=4):
         transform=get_transforms(is_train=True),
         mode='train'
     )
+
+    count_class_samples(train_dataset)
     
     # 从训练集中分割出验证集
     train_indices, val_indices = train_test_split(
@@ -69,6 +72,79 @@ def get_dataloaders(data_dir, batch_size=32, num_workers=4):
     )
     
     # 创建测试集的数据集和数据加载器
+    test_dataset = EmojiDataset(
+        root_dir=data_dir,
+        transform=get_transforms(is_train=False),
+        mode='test'
+    )
+    
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    return train_loader, val_loader, test_loader, train_dataset.get_classes()
+
+def get_balanced_dataloaders(data_dir, batch_size=32, num_workers=4):
+    # 创建训练集数据集实例
+    train_dataset = EmojiDataset(
+        root_dir=data_dir,
+        transform=get_transforms(is_train=True),
+        mode='train'
+    )
+
+    count_class_samples(train_dataset)
+    
+    # 计算类别权重
+    class_counts = np.bincount(train_dataset.labels)
+    total_samples = len(train_dataset.labels)
+    
+    # 分割训练集和验证集
+    train_idx, val_idx = train_test_split(
+        range(total_samples),
+        test_size=0.1,
+        random_state=42,
+        stratify=train_dataset.labels
+    )
+    
+    # 为训练集创建加权采样器
+    train_labels = np.array(train_dataset.labels)[train_idx]
+    class_counts = np.bincount(train_labels)
+    class_weights = 1. / class_counts
+    samples_weight = class_weights[train_labels]
+    samples_weight = torch.from_numpy(samples_weight).float()
+    
+    train_sampler = torch.utils.data.WeightedRandomSampler(
+        weights=samples_weight,
+        num_samples=len(train_idx),
+        replacement=True
+    )
+    
+    # 创建训练集和验证集
+    train_subset = torch.utils.data.Subset(train_dataset, train_idx)
+    val_subset = torch.utils.data.Subset(train_dataset, val_idx)
+    
+    # 创建数据加载器
+    train_loader = DataLoader(
+        train_subset,
+        batch_size=batch_size,
+        sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    val_loader = DataLoader(
+        val_subset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    
+    # 测试集
     test_dataset = EmojiDataset(
         root_dir=data_dir,
         transform=get_transforms(is_train=False),

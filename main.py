@@ -98,7 +98,7 @@ def main():
     os.makedirs(config['result_dir'], exist_ok=True)
     
     # 获取数据加载器和类别信息
-    train_loader, val_loader, test_loader, classes = get_dataloaders(
+    train_loader, val_loader, test_loader, classes = get_balanced_dataloaders(
         config['data_dir'],
         config['batch_size'],
         config['num_workers']

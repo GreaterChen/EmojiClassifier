@@ -67,3 +67,30 @@ def get_model_names():
         'swin_base_patch4_window7_224', 'swin_small_patch4_window7_224', 'swin_base_patch4_window7_224.ms_in22k_ft_in1k'
     ]
     return base_models
+
+
+def count_class_samples(dataset):
+    if dataset.mode != 'train':
+        print("只能统计训练集的类别分布")
+        return
+    
+    class_counts = {}
+    for label in dataset.labels:
+        class_name = dataset.classes[label]
+        class_counts[class_name] = class_counts.get(class_name, 0) + 1
+    
+    # 按数量排序
+    sorted_counts = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    print("\n类别分布统计:")
+    print("-" * 50)
+    print(f"{'类别':<30} {'数量':<10} {'占比':<10}")
+    print("-" * 50)
+    
+    total_samples = len(dataset)
+    for class_name, count in sorted_counts:
+        percentage = (count / total_samples) * 100
+        print(f"{class_name:<30} {count:<10} {percentage:.2f}%")
+    
+    print("-" * 50)
+    print(f"总样本数: {total_samples}")
